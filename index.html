@@ -251,8 +251,8 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- Three.js + GLTFLoader -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Three.js + GLTFLoader — SAME cdn.jsdelivr.net source, same version -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
@@ -261,8 +261,12 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
 //  Falls back to procedural if file not found
 // ════════════════════════════════════════════
 
-// Path to model — same folder as index.html
-const MODEL_URL = './heart.glb';
+// Auto-detect path: works both on GitHub Pages and locally via Live Server
+const MODEL_URL = (()=>{
+  const base = window.location.href.replace(/\/[^/]*$/, '/');
+  return base + 'heart.glb';
+})();
+console.log('🫀 Loading heart from:', MODEL_URL);
 
 // Shared state for both hearts
 const hearts = {};
@@ -427,7 +431,9 @@ loader.load(
   },
   (error) => {
     // Fallback — procedural heart
-    console.warn('GLB not found, using procedural fallback:', error.message);
+    console.error('❌ GLB failed to load:', error);
+    console.error('   Tried URL:', MODEL_URL);
+    console.warn('↩ Using procedural fallback');
     buildFallbackHeart(sm.group);
     buildFallbackHeart(lg.group);
     modelLoaded = true;
