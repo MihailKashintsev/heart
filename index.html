@@ -474,7 +474,7 @@ animate();
 //  APP LOGIC
 // ════════════════════════════════
 const BUILT_IN = {
-  url: 'https://sheri-unsymbolised-powerfully.ngrok-free.dev',
+  url: 'https://jfenviejijeijef-heartai-space.hf.space',
   key: 'sk-my-main-key-001'
 };
 let cfg       = JSON.parse(localStorage.getItem('heartai_cfg')  || 'null') || {...BUILT_IN};
@@ -499,7 +499,7 @@ function toggleSidebar() {
 function autoConnect() {
   setStatus('CONNECTING', false);
   fetch(`${cfg.url}/v1/health`, {
-    headers:{'ngrok-skip-browser-warning':'1','Authorization':`Bearer ${cfg.key}`}
+    headers:{'Authorization':`Bearer ${cfg.key}`}
   })
   .then(r => r.json())
   .then(d => {
@@ -562,7 +562,7 @@ async function generateKey() {
   try {
     const r = await fetch(`${cfg.url}/v1/keys/new`,{
       method:'POST',
-      headers:{'ngrok-skip-browser-warning':'1','Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json'},
+      headers:{'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json'},
       body:JSON.stringify({name})
     });
     newKey = (await r.json()).key;
@@ -618,7 +618,7 @@ async function sendMessage(){
   try {
     const r = await fetch(`${cfg.url}/v1/ask`,{
       method:'POST',
-      headers:{'ngrok-skip-browser-warning':'1','Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json'},
+      headers:{'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json'},
       body:JSON.stringify({question:txt, use_search:useSearch})
     });
     const d = await r.json();
