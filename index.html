@@ -606,7 +606,11 @@ function copyNewKey(){ navigator.clipboard.writeText(lastKey); toast('Скопи
 function copyKey(i){ navigator.clipboard.writeText(extKeys[i].key); toast('Скопировано!'); }
 function deleteKey(i){ extKeys.splice(i,1); saveExtKeys(); renderKeys(); toast('Удалён'); }
 
-function hideWelcome(){ const w=document.getElementById('welcome'); if(w) w.style.display='none'; }
+function hideWelcome(){
+  const w=document.getElementById('welcome');
+  if(w){ w.style.opacity='0'; w.style.transition='opacity .3s';
+    setTimeout(()=>{ w.style.display='none'; }, 300); }
+}
 function toggleSearch(){ useSearch=!useSearch; document.getElementById('searchToggle').classList.toggle('on',useSearch); }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
