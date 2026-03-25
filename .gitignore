@@ -2,3 +2,5 @@ venv/
 *.pt
 __pycache__/
 *.pyc
+finetune.py
+train.py
