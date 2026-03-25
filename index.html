@@ -145,6 +145,74 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
 .corner.bl{bottom:7px;left:7px;transform:scaleY(-1)}.corner.br{bottom:7px;right:7px;transform:scale(-1)}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--bg3);border:1px solid rgba(255,0,51,0.3);color:var(--red);font-family:var(--mono);font-size:10px;letter-spacing:2px;padding:8px 16px;border-radius:2px;box-shadow:0 0 18px var(--glow);opacity:0;transition:all .28s;pointer-events:none;z-index:9999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ══ MOBILE OVERLAY ══ */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;backdrop-filter:blur(2px);}
+.sidebar-overlay.show{display:block;}
+
+/* ══ MOBILE ══ */
+@media(max-width:600px){
+  :root{--sw:100vw;}
+
+  /* Sidebar поверх контента, а не рядом */
+  .sidebar{
+    position:fixed;top:0;left:0;height:100%;
+    z-index:200;
+    transform:translateX(0);
+    transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .3s;
+    width:88vw !important;
+    max-width:360px;
+  }
+  .sidebar.collapsed{
+    transform:translateX(-110%);
+    opacity:1;
+    pointer-events:none;
+  }
+
+  /* Хедер компактнее */
+  header{padding:8px 12px;gap:8px;}
+  .bsub{display:none;}
+  .bname{font-size:15px;letter-spacing:2px;}
+  .heart-wrap{width:40px;height:40px;}
+  #heartCanvas{width:40px;height:40px;}
+  .hring{inset:-6px;}
+
+  /* Статус — только точка на мобиле */
+  .status{padding:5px 8px;letter-spacing:0px;font-size:9px;}
+  #statusText{display:none;}
+  .sdot{width:8px;height:8px;}
+
+  /* Сообщения */
+  .messages{padding:14px 12px;gap:12px;}
+  .msg{max-width:90%;}
+  .mbub{font-size:13px;padding:10px 12px;}
+
+  /* Welcome сердце меньше */
+  .welcome-heart-wrap{width:140px;height:140px;}
+  #heartCanvasLarge{width:140px;height:140px;}
+  .wt{font-size:9px;letter-spacing:4px;}
+  .ws{font-size:9px;}
+
+  /* Инпут */
+  .input-area{padding:10px 12px 12px;}
+  .imeta{margin-bottom:6px;}
+  .ihint{display:none;}
+  textarea{font-size:16px; /* iOS не зумит при font-size>=16px */}
+  .sbtn{width:44px;height:44px;}
+
+  /* Углы убираем на мобиле */
+  .corner{display:none;}
+
+  /* Тост выше клавиатуры */
+  .toast{bottom:80px;}
+}
+
+/* Планшет */
+@media(min-width:601px) and (max-width:900px){
+  :root{--sw:280px;}
+  .bsub{display:none;}
+  .msg{max-width:86%;}
+}
 </style>
 </head>
 <body>
@@ -250,6 +318,7 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <!-- Three.js + GLTFLoader — SAME cdn.jsdelivr.net source, same version -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -280,7 +349,7 @@ function buildScene(canvas, size) {
   renderer.setPixelRatio(dpr);
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.8;
+  renderer.toneMappingExposure = 2.8;
   renderer.shadowMap.enabled = true;
 
   const scene = new THREE.Scene();
@@ -289,7 +358,7 @@ function buildScene(canvas, size) {
   camera.lookAt(0, 0, 0);
 
   // Lights
-  const key = new THREE.DirectionalLight(0xffd0c0, 4.5);
+  const key = new THREE.DirectionalLight(0xffffff, 6.0);
   key.position.set(-2, 3, 4);
   scene.add(key);
 
@@ -301,9 +370,9 @@ function buildScene(canvas, size) {
   sss.position.set(0, -4, 1);
   scene.add(sss);
 
-  scene.add(new THREE.AmbientLight(0x0a0002, 10));
+  scene.add(new THREE.AmbientLight(0xff2222, 3.5));
 
-  const glowPt = new THREE.PointLight(0xff0020, 3.5, 5);
+  const glowPt = new THREE.PointLight(0xff0020, 8.0, 6);
   glowPt.position.set(0, 0, 1.5);
   scene.add(glowPt);
 
@@ -320,7 +389,7 @@ function makeRedMat(roughness, emissiveStr) {
     roughness: roughness,
     metalness: 0.05,
     emissive:  new THREE.Color(0xff0030),
-    emissiveIntensity: emissiveStr,
+    emissiveIntensity: Math.max(emissiveStr, 0.6),
   });
 }
 
@@ -353,7 +422,7 @@ function fitModel(obj) {
 function buildFallbackHeart(group) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(0xaa0015), roughness:0.5, metalness:0.04,
-    emissive: new THREE.Color(0xff0030), emissiveIntensity:0.12,
+    emissive: new THREE.Color(0xff0030), emissiveIntensity:0.8,
   });
 
   function defSphere(geo, fn) {
@@ -495,9 +564,18 @@ window.onload = () => {
   autoConnect();
 };
 
+function isMobile(){ return window.innerWidth <= 600; }
+
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
   document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  // Overlay только на мобиле
+  const overlay = document.getElementById('sidebarOverlay');
+  if(isMobile()){
+    overlay.classList.toggle('show', sidebarOpen);
+  } else {
+    overlay.classList.remove('show');
+  }
 }
 
 function autoConnect() {
@@ -534,6 +612,7 @@ function autoConnect() {
       setStatus('OFFLINE', false);
       sidebarOpen = true;
       document.getElementById('sidebar').classList.remove('collapsed');
+      if(isMobile()) document.getElementById('sidebarOverlay').classList.add('show');
       banner.innerHTML = '⚠ Не удалось подключиться.<br>Обнови URL сервера ниже или проверь Space на HuggingFace.';
       banner.classList.add('show');
     }
@@ -638,6 +717,8 @@ function hideTyping(){ const t=document.getElementById('typing'); if(t) t.remove
 async function sendMessage(){
   const inp=document.getElementById('input');
   const txt=inp.value.trim(); if(!txt) return;
+  // Закрываем сайдбар на мобиле при отправке
+  if(isMobile() && sidebarOpen){ toggleSidebar(); }
   hideWelcome(); addUser(txt);
   inp.value=''; inp.style.height='auto';
   showTyping();
@@ -667,6 +748,4 @@ function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 </script>
 </body>
-<Question ID="1" Shortcut="chapter 1" Order="" ElementType="chapter" >
-<LongCaption></html></LongCaption>
-</Question>
+</html>
