@@ -607,6 +607,8 @@ let connected   = false;
 let lastKey     = '';
 let sidebarOpen = true;
 let retryCount  = 0;
+let currentChatId = null;
+let chats = JSON.parse(localStorage.getItem('heartai_chats') || '[]');
 const MAX_RETRY = 8;
 
 window.onload = () => {
