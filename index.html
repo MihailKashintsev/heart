@@ -519,19 +519,71 @@ function beatScale(t) {
   return 1.0;
 }
 
+let isAIThinking = false;
+let baseGlowIntensity = 0.5;
+let thinkingGlowIntensity = 28;
+let currentGlowIntensity = baseGlowIntensity;
+
+function setAIThinking(thinking) {
+  isAIThinking = thinking;
+}
+
 function animate() {
   requestAnimationFrame(animate);
   clock += 0.016;
   const sc = beatScale(clock);
 
-  if (modelLoaded) {
-    sm.group.rotation.y += 0.007;
-    sm.group.scale.setScalar(sc);
-    sm.glowPt.intensity = 3.5 + (sc - 1) * 22;
+  // Adjust glow intensity and rhythm based on AI state
+  if (isAIThinking) {
+    // When AI is thinking/responding, increase glow intensity and speed
+    currentGlowIntensity = baseGlowIntensity + (thinkingGlowIntensity * (0.5 + 0.5 * Math.sin(clock * 2)));
+  } else {
+    // When waiting for user, slower rhythm and darker heart
+    currentGlowIntensity = baseGlowIntensity + (0.3 * Math.sin(clock * 0.3));
+  }
 
-    lg.group.rotation.y += 0.009;
-    lg.group.scale.setScalar(sc);
-    lg.glowPt.intensity = 3.5 + (sc - 1) * 30;
+  if (modelLoaded) {
+    // Adjust rotation speed based on state
+    const rotSpeed = isAIThinking ? 0.012 : 0.005;
+    sm.group.rotation.y += rotSpeed;
+    lg.group.rotation.y += rotSpeed * 1.2;
+    
+    // Scale pulse
+    const scaleSpeed = isAIThinking ? 1.2 : 0.8;
+    const scaleFactor = 1 + (scaleSpeed - 1) * (sc - 1);
+    sm.group.scale.setScalar(scaleFactor);
+    lg.group.scale.setScalar(scaleFactor);
+    
+    // Update glow intensity
+    sm.glowPt.intensity = currentGlowIntensity;
+    lg.glowPt.intensity = currentGlowIntensity * 1.2;
+    
+    // Adjust material emissive properties based on state
+    sm.group.traverse(child => {
+      if (child.isMesh && child.material) {
+        if (isAIThinking) {
+          // When thinking, make the heart brighter and more vibrant
+          child.material.emissiveIntensity = 0.8 + 0.4 * Math.sin(clock * 3);
+          child.material.color = new THREE.Color(1.0, 0.2, 0.3);
+        } else {
+          // When waiting, make the heart darker with slower pulse
+          child.material.emissiveIntensity = 0.3 + 0.1 * Math.sin(clock * 0.3);
+          child.material.color = new THREE.Color(0.8, 0.0, 0.1);
+        }
+      }
+    });
+    
+    lg.group.traverse(child => {
+      if (child.isMesh && child.material) {
+        if (isAIThinking) {
+          child.material.emissiveIntensity = 1.0 + 0.6 * Math.sin(clock * 3);
+          child.material.color = new THREE.Color(1.0, 0.2, 0.3);
+        } else {
+          child.material.emissiveIntensity = 0.4 + 0.15 * Math.sin(clock * 0.3);
+          child.material.color = new THREE.Color(0.8, 0.0, 0.1);
+        }
+      }
+    });
   }
 
   sm.renderer.render(sm.scene, sm.camera);
