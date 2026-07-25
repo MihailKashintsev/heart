@@ -142,6 +142,45 @@ def chat_rugpt(text):
         answer = full[len(prompt):].strip()
     return answer[:300]
 
+def sample_next(logits, generated, temperature=0.8, top_k=40, top_p=0.9,
+                repetition_penalty=1.3, recent_window=64):
+    """Сэмплирование следующего токена вместо жадного argmax.
+
+    Жадный argmax на char-level модели почти всегда сваливается в повтор
+    одного слова. temperature + repetition penalty + top-k/top-p дают
+    связные слова без зацикливания."""
+    logits = logits.clone()
+    # Никогда не генерируем служебные токены
+    for sid in (char_tok.bos_id, char_tok.pad_id, char_tok.unk_id):
+        logits[sid] = float("-inf")
+    # Repetition penalty — гасим уже недавно использованные символы
+    if repetition_penalty and repetition_penalty != 1.0:
+        for tid in set(generated[-recent_window:]):
+            if logits[tid] > 0:
+                logits[tid] /= repetition_penalty
+            else:
+                logits[tid] *= repetition_penalty
+    # Temperature
+    if temperature and temperature > 0:
+        logits = logits / temperature
+    # top-k
+    if top_k and top_k < logits.size(-1):
+        kth = torch.topk(logits, top_k).values[-1]
+        logits[logits < kth] = float("-inf")
+    # top-p (nucleus)
+    if top_p and 0 < top_p < 1.0:
+        sorted_logits, sorted_idx = torch.sort(logits, descending=True)
+        probs = torch.softmax(sorted_logits, dim=-1)
+        cum = torch.cumsum(probs, dim=-1)
+        remove = cum > top_p
+        remove[1:] = remove[:-1].clone()
+        remove[0] = False
+        logits[sorted_idx[remove]] = float("-inf")
+    probs = torch.softmax(logits, dim=-1)
+    if not torch.isfinite(probs).all() or probs.sum() <= 0:
+        return int(torch.argmax(logits).item())
+    return int(torch.multinomial(probs, num_samples=1).item())
+
 def chat_base(text):
     if base_model is None:
         return "Модель загружается, попробуй позже."
@@ -149,14 +188,13 @@ def chat_base(text):
     ids = char_tok.encode(prompt)
     if len(ids) > 400: ids = ids[-400:]
     x = torch.tensor([ids], dtype=torch.long)
+    generated = []
     with torch.no_grad():
         for _ in range(150):
-            nl = base_model(x)[0,-1,:].clone()
-            nl[char_tok.bos_id]=float("-inf")
-            nl[char_tok.pad_id]=float("-inf")
-            nl[char_tok.unk_id]=float("-inf")
-            nid = torch.argmax(nl).item()
+            nl = base_model(x)[0,-1,:]
+            nid = sample_next(nl, generated)
             if nid == char_tok.eos_id: break
+            generated.append(nid)
             x = torch.cat([x, torch.tensor([[nid]])], dim=1)
     answer = char_tok.decode(x[0].tolist()[len(ids):])
     for stop in ["Пользователь:", "demorg:"]:
