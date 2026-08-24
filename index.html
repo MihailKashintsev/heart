@@ -36,29 +36,26 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .pbtn:hover{background:rgba(255,0,51,0.18);box-shadow:0 0 10px var(--glow);}
 .offline-banner{background:rgba(255,0,51,0.08);border:1px solid rgba(255,0,51,0.3);border-radius:2px;padding:10px 12px;font-size:10px;color:rgba(255,0,51,0.8);letter-spacing:1px;line-height:1.6;display:none;margin-bottom:4px;}
 .offline-banner.show{display:block;}
-.key-list{display:flex;flex-direction:column;gap:7px;}
 .empty-lbl{font-size:10px;color:rgba(255,0,51,0.2);letter-spacing:2px;padding:6px 0;}
-.key-item{background:var(--bg3);border:1px solid rgba(255,0,51,0.1);border-radius:2px;padding:10px 12px;transition:border-color .2s;}
-.key-item:hover{border-color:rgba(255,0,51,0.22);}
-.ki-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.ki-dot{width:5px;height:5px;border-radius:50%;background:var(--red);box-shadow:0 0 4px var(--red);flex-shrink:0;}
-.ki-name{font-size:11px;color:rgba(255,255,255,0.65);flex:1;}
-.ki-val{font-size:10px;color:rgba(255,0,51,0.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ki-btns{display:flex;gap:5px;margin-top:6px;}
 .kbtn{font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;cursor:pointer;font-family:var(--mono);transition:all .2s;}
-.kbtn.cp{background:var(--faint);border:1px solid rgba(255,0,51,0.18);color:rgba(255,0,51,0.5);}
-.kbtn.cp:hover{background:rgba(255,0,51,0.14);color:var(--red);}
 .kbtn.dl{background:transparent;border:1px solid rgba(255,0,51,0.1);color:rgba(255,0,51,0.28);}
-.kbtn.dl:hover{background:rgba(255,0,51,0.1);color:var(--red);}
-.new-form{background:var(--bg3);border:1px dashed rgba(255,0,51,0.18);border-radius:2px;padding:14px;display:flex;flex-direction:column;gap:8px;}
-.new-row{display:flex;gap:7px;}
+.kbtn.dl:hover{background:rgba(255,0,51,0.14);border-color:rgba(255,0,51,0.3);color:var(--red);}
 .gbtn{background:rgba(255,0,51,0.09);border:1px solid rgba(255,0,51,0.28);color:var(--red);font-family:var(--mono);font-size:10px;padding:8px 12px;border-radius:2px;cursor:pointer;letter-spacing:2px;flex-shrink:0;transition:all .2s;}
 .gbtn:hover{background:rgba(255,0,51,0.18);box-shadow:0 0 8px var(--glow);}
-.gen-box{background:var(--bg2);border:1px solid rgba(255,0,51,0.14);border-radius:2px;padding:10px 12px;font-size:10px;color:rgba(255,0,51,0.45);display:none;line-height:1.7;word-break:break-all;}
-.gen-box.show{display:block;}
-.gen-key{display:block;font-size:12px;color:var(--red);margin-bottom:4px;}
-.cbtn{font-size:9px;letter-spacing:2px;padding:3px 9px;border-radius:2px;cursor:pointer;font-family:var(--mono);background:var(--faint);border:1px solid rgba(255,0,51,0.18);color:rgba(255,0,51,0.5);transition:all .2s;margin-top:4px;display:inline-block;}
-.cbtn:hover{background:rgba(255,0,51,0.14);color:var(--red);}
+
+/* CHATS */
+.chat-actions{display:flex;gap:7px;margin-bottom:12px;}
+.chat-actions .gbtn{flex:1;text-align:center;}
+.chat-list{display:flex;flex-direction:column;gap:14px;}
+.group-block{display:flex;flex-direction:column;gap:6px;}
+.group-head{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:2px;color:rgba(255,0,51,0.45);text-transform:uppercase;}
+.group-head .gname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-item{display:flex;align-items:center;gap:6px;padding:8px 9px;border-radius:2px;background:var(--bg3);border:1px solid rgba(255,0,51,0.09);cursor:pointer;transition:all .2s;}
+.chat-item:hover{border-color:rgba(255,0,51,0.25);}
+.chat-item.active{border-color:var(--red);box-shadow:0 0 8px rgba(255,0,51,0.15);}
+.chat-title{flex:1;font-size:11px;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-grp-sel{background:transparent;border:none;color:rgba(255,0,51,0.35);font-family:var(--mono);font-size:9px;outline:none;cursor:pointer;max-width:58px;flex-shrink:0;}
+.chat-grp-sel option{background:var(--bg3);color:var(--text);}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -222,7 +219,7 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
 
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-title">⚙ НАСТРОЙКИ</div>
+      <div class="sidebar-title">☰ ПАНЕЛЬ</div>
       <div class="status" style="width:100%">
         <div class="sdot" id="sdot2"></div>
         <span id="stxt2">CONNECTING</span>
@@ -236,28 +233,17 @@ textarea::placeholder{color:rgba(255,255,255,0.12);}
         </div>
       </div>
       <div>
-        <div class="sec-lbl">Основной сервер</div>
-        <div class="field-row"><span class="field-lbl">URL</span><input class="finp" id="sUrl" type="text" placeholder="https://xxxx.ngrok-free.app"/></div>
-        <div class="field-row"><span class="field-lbl">КЛЮЧ</span><input class="finp" id="sKey" type="text" placeholder="sk-my-main-key-001"/></div>
-        <button class="pbtn" onclick="saveDefault()">СОХРАНИТЬ И ПЕРЕПОДКЛЮЧИТЬ</button>
-      </div>
-      <div>
-        <div class="sec-lbl">Ключи для проектов</div>
-        <div class="key-list" id="keyList"></div>
-      </div>
-      <div>
-        <div class="sec-lbl">Новый ключ</div>
-        <div class="new-form">
-          <div class="new-row">
-            <input class="finp" id="newName" type="text" placeholder="Название проекта" style="flex:1"/>
-            <button class="gbtn" aria-label="Создать ключ" onclick="generateKey()">+</button>
-          </div>
-          <div class="gen-box" id="genBox">
-            <span class="gen-key" id="genKeyVal"></span>
-            <span id="genLabel"></span>
-            <button class="cbtn" onclick="copyNewKey()">СКОПИРОВАТЬ</button>
-          </div>
+        <div class="sec-lbl">Чаты</div>
+        <div class="chat-actions">
+          <button class="gbtn" onclick="newChat()">+ ЧАТ</button>
+          <button class="gbtn" onclick="newGroup()">+ ГРУППА</button>
         </div>
+        <div class="chat-list" id="chatList"></div>
+      </div>
+      <div>
+        <div class="sec-lbl">Сервер</div>
+        <div class="field-row"><span class="field-lbl">URL</span><input class="finp" id="sUrl" type="text" placeholder="https://xxxx.hf.space"/></div>
+        <button class="pbtn" onclick="saveDefault()">СОХРАНИТЬ И ПЕРЕПОДКЛЮЧИТЬ</button>
       </div>
     </div>
   </div>
@@ -598,23 +584,22 @@ const BUILT_IN = {
   url: 'https://jfenviejijeijef-heartai-space.hf.space',
   key: 'sk-my-main-key-001'
 };
-// Всегда берём вшитый URL — сбрасываем старый localStorage
-localStorage.removeItem('heartai_cfg');
-let cfg         = {...BUILT_IN};
-let extKeys     = JSON.parse(localStorage.getItem('heartai_keys') || '[]');
+// Ключ больше не редактируется из UI (см. настройки) — всегда вшитый.
+// URL можно переопределить и он переживает перезагрузку страницы.
+let cfg = { ...BUILT_IN, ...(JSON.parse(localStorage.getItem('heartai_cfg') || 'null') || {}), key: BUILT_IN.key };
 let useSearch   = false;
 let connected   = false;
-let lastKey     = '';
 let sidebarOpen = true;
 let retryCount  = 0;
+let groups = JSON.parse(localStorage.getItem('heartai_groups') || '[]');
+let chats  = JSON.parse(localStorage.getItem('heartai_chats')  || '[]');
 let currentChatId = null;
-let chats = JSON.parse(localStorage.getItem('heartai_chats') || '[]');
 const MAX_RETRY = 8;
 
 window.onload = () => {
   document.getElementById('sUrl').value = cfg.url;
-  document.getElementById('sKey').value = cfg.key;
-  renderKeys();
+  renderChatList();
+  restoreLastChat();
   autoConnect();
 };
 
@@ -648,8 +633,11 @@ function autoConnect() {
     retryCount = 0;
     document.getElementById('offlineBanner').classList.remove('show');
     setStatus('ONLINE · ' + (d.parameters || 'demorg'), true);
-    hideWelcome();
-    addAI('Система инициализирована.\nМодель demorg активна. Сердце бьётся.\n\nЧем могу помочь?');
+    const chat = ensureChat();
+    if (chat.messages.length === 0) {
+      hideWelcome();
+      addAI('Система инициализирована.\nМодель demorg активна. Сердце бьётся.\n\nЧем могу помочь?');
+    }
   })
   .catch(() => {
     connected = false;
@@ -685,65 +673,169 @@ function setStatus(t, on) {
 
 function saveDefault() {
   const url = document.getElementById('sUrl').value.trim().replace(/\/$/,'');
-  const key = document.getElementById('sKey').value.trim();
-  if (!url || !key) { toast('Заполни URL и ключ'); return; }
-  cfg = { url, key };
+  if (!url) { toast('Заполни URL'); return; }
+  cfg = { ...cfg, url };
   localStorage.setItem('heartai_cfg', JSON.stringify(cfg));
   toast('Сохранено — переподключаюсь...');
   connected = false;
   setTimeout(autoConnect, 500);
 }
 
-function saveExtKeys() { localStorage.setItem('heartai_keys', JSON.stringify(extKeys)); }
+// ── ЧАТЫ И ГРУППЫ ──────────────────────────────────
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function persistChats(){ localStorage.setItem('heartai_chats', JSON.stringify(chats)); }
+function persistGroups(){ localStorage.setItem('heartai_groups', JSON.stringify(groups)); }
+function persistCurrent(){
+  if (currentChatId) localStorage.setItem('heartai_current_chat', currentChatId);
+  else localStorage.removeItem('heartai_current_chat');
+}
+function getCurrentChat(){ return chats.find(c => c.id === currentChatId) || null; }
+function ensureChat(){ return getCurrentChat() || newChat(); }
 
-function renderKeys() {
-  const el = document.getElementById('keyList');
-  if (!extKeys.length) { el.innerHTML='<div class="empty-lbl">НЕТ КЛЮЧЕЙ</div>'; return; }
-  el.innerHTML = extKeys.map((k,i) => `
-    <div class="key-item">
-      <div class="ki-top"><div class="ki-dot"></div><div class="ki-name">${esc(k.name)}</div></div>
-      <div class="ki-val">${k.key}</div>
-      <div class="ki-btns">
-        <button class="kbtn cp" onclick="copyKey(${i})">COPY</button>
-        <button class="kbtn dl" onclick="deleteKey(${i})">DEL</button>
-      </div>
-    </div>`).join('');
+function chatTitleFrom(text){
+  const t = text.trim().replace(/\s+/g,' ');
+  return t.length > 34 ? t.slice(0,34) + '…' : (t || 'Новый чат');
 }
 
-async function generateKey() {
-  const name = document.getElementById('newName').value.trim();
-  if (!name) { toast('Введи название'); return; }
-  let newKey;
-  try {
-    const r = await fetch(`${cfg.url}/v1/keys/new`,{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${cfg.key}`,'Content-Type':'application/json'},
-      body:JSON.stringify({name})
-    });
-    newKey = (await r.json()).key;
-  } catch {
-    const b = crypto.getRandomValues(new Uint8Array(16));
-    newKey = 'sk-' + Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');
+function newChat(){
+  const chat = { id: uid(), title: 'Новый чат', groupId: null, messages: [], ts: Date.now() };
+  chats.unshift(chat);
+  currentChatId = chat.id;
+  persistChats(); persistCurrent();
+  renderChatList();
+  renderMessages(chat);
+  return chat;
+}
+
+function newGroup(){
+  const name = prompt('Название группы:');
+  if (!name || !name.trim()) return;
+  groups.push({ id: uid(), name: name.trim() });
+  persistGroups();
+  renderChatList();
+}
+
+function selectChat(id){
+  const chat = chats.find(c => c.id === id);
+  if (!chat) return;
+  currentChatId = id;
+  persistCurrent();
+  renderChatList();
+  renderMessages(chat);
+  if (isMobile() && sidebarOpen) toggleSidebar();
+}
+
+function deleteChat(id, ev){
+  ev.stopPropagation();
+  if (!confirm('Удалить чат безвозвратно?')) return;
+  chats = chats.filter(c => c.id !== id);
+  persistChats();
+  if (currentChatId === id) {
+    currentChatId = null;
+    persistCurrent();
+    clearMessageBubbles();
+    showWelcome();
   }
-  extKeys.push({name, key:newKey});
-  saveExtKeys(); renderKeys();
-  lastKey = newKey;
-  document.getElementById('genKeyVal').textContent = newKey;
-  document.getElementById('genLabel').textContent = 'Проект: ' + name;
-  document.getElementById('genBox').classList.add('show');
-  document.getElementById('newName').value = '';
-  toast('Ключ создан!');
+  renderChatList();
+  toast('Чат удалён');
 }
 
-function copyNewKey(){ navigator.clipboard.writeText(lastKey); toast('Скопировано!'); }
-function copyKey(i){ navigator.clipboard.writeText(extKeys[i].key); toast('Скопировано!'); }
-function deleteKey(i){ extKeys.splice(i,1); saveExtKeys(); renderKeys(); toast('Удалён'); }
+function deleteGroup(id, ev){
+  ev.stopPropagation();
+  if (!confirm('Удалить группу? Чаты внутри останутся, но станут без группы.')) return;
+  chats.forEach(c => { if (c.groupId === id) c.groupId = null; });
+  groups = groups.filter(g => g.id !== id);
+  persistChats(); persistGroups();
+  renderChatList();
+  toast('Группа удалена');
+}
 
+function setChatGroup(id, groupId){
+  const chat = chats.find(c => c.id === id);
+  if (!chat) return;
+  chat.groupId = groupId || null;
+  persistChats();
+  renderChatList();
+}
+
+function renderChatList(){
+  const el = document.getElementById('chatList');
+  if (!chats.length) { el.innerHTML = '<div class="empty-lbl">НЕТ ЧАТОВ</div>'; return; }
+
+  const groupOpts = (selectedId) => '<option value="">без группы</option>' +
+    groups.map(g => `<option value="${g.id}" ${g.id===selectedId?'selected':''}>${esc(g.name)}</option>`).join('');
+
+  const chatItem = (c) => `
+    <div class="chat-item ${c.id===currentChatId?'active':''}" onclick="selectChat('${c.id}')">
+      <span class="chat-title">${esc(c.title)}</span>
+      <select class="chat-grp-sel" onclick="event.stopPropagation()" onchange="setChatGroup('${c.id}', this.value)">${groupOpts(c.groupId)}</select>
+      <button class="kbtn dl" onclick="deleteChat('${c.id}', event)" aria-label="Удалить чат" title="Удалить чат">×</button>
+    </div>`;
+
+  const byRecent = (a,b) => b.ts - a.ts;
+  let html = '';
+
+  groups.forEach(g => {
+    const groupChats = chats.filter(c => c.groupId === g.id).sort(byRecent);
+    html += `
+      <div class="group-block">
+        <div class="group-head">
+          <span class="gname">${esc(g.name)}</span>
+          <button class="kbtn dl" onclick="deleteGroup('${g.id}', event)" aria-label="Удалить группу" title="Удалить группу">×</button>
+        </div>
+        ${groupChats.length ? groupChats.map(chatItem).join('') : '<div class="empty-lbl">пусто</div>'}
+      </div>`;
+  });
+
+  const ungrouped = chats.filter(c => !c.groupId).sort(byRecent);
+  if (ungrouped.length) {
+    html += `
+      <div class="group-block">
+        ${groups.length ? '<div class="group-head"><span class="gname">БЕЗ ГРУППЫ</span></div>' : ''}
+        ${ungrouped.map(chatItem).join('')}
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function restoreLastChat(){
+  const savedId = localStorage.getItem('heartai_current_chat');
+  const chat = savedId && chats.find(c => c.id === savedId);
+  if (!chat) return;
+  currentChatId = chat.id;
+  renderChatList();
+  renderMessages(chat);
+}
+
+function showWelcome(){
+  const w = document.getElementById('welcome');
+  if (!w) return;
+  w.style.display = 'flex';
+  requestAnimationFrame(() => { w.style.opacity = '1'; });
+}
 function hideWelcome(){
   const w=document.getElementById('welcome');
   if(w){ w.style.opacity='0'; w.style.transition='opacity .3s';
     setTimeout(()=>{ w.style.display='none'; }, 300); }
 }
+function clearMessageBubbles(){
+  document.querySelectorAll('#messages .msg').forEach(n => n.remove());
+}
+function renderMessages(chat){
+  clearMessageBubbles();
+  if (!chat.messages.length) { showWelcome(); return; }
+  hideWelcome();
+  const m = document.getElementById('messages');
+  chat.messages.forEach(msg => {
+    const d = document.createElement('div');
+    d.className = 'msg ' + (msg.role === 'user' ? 'user' : 'ai');
+    d.innerHTML = `<div class="mlbl">${msg.role==='user' ? 'ВЫ' : 'HEARTAI · demorg'}</div><div class="mbub">${esc(msg.text)}</div>`;
+    m.appendChild(d);
+  });
+  m.scrollTop = m.scrollHeight;
+}
+
 function toggleSearch(){ useSearch=!useSearch; document.getElementById('searchToggle').classList.toggle('on',useSearch); }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
 function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
@@ -753,12 +845,24 @@ function addUser(text){
   const d=document.createElement('div'); d.className='msg user';
   d.innerHTML=`<div class="mlbl">ВЫ</div><div class="mbub">${esc(text)}</div>`;
   m.appendChild(d); m.scrollTop=m.scrollHeight;
+  const chat = getCurrentChat();
+  if (!chat) return;
+  chat.messages.push({role:'user', text});
+  if (chat.messages.filter(x => x.role==='user').length === 1) chat.title = chatTitleFrom(text);
+  chat.ts = Date.now();
+  persistChats();
+  renderChatList();
 }
 function addAI(text){
   const m=document.getElementById('messages');
   const d=document.createElement('div'); d.className='msg ai';
   d.innerHTML=`<div class="mlbl">HEARTAI · demorg</div><div class="mbub">${esc(text)}</div>`;
   m.appendChild(d); m.scrollTop=m.scrollHeight;
+  const chat = getCurrentChat();
+  if (!chat) return;
+  chat.messages.push({role:'ai', text});
+  chat.ts = Date.now();
+  persistChats();
 }
 function showTyping(){
   const m=document.getElementById('messages');
@@ -773,6 +877,7 @@ async function sendMessage(){
   const txt=inp.value.trim(); if(!txt) return;
   // Закрываем сайдбар на мобиле при отправке
   if(isMobile() && sidebarOpen){ toggleSidebar(); }
+  ensureChat();
   hideWelcome(); addUser(txt);
   inp.value=''; inp.style.height='auto';
   showTyping();
