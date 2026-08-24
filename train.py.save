@@ -1,4 +1,4 @@
-import torch, torch.nn as nn, math, warnings, re, signal, sys
+import torch, torch.nn as nn, math, warnings, re, signal, sys, os
 from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 warnings.filterwarnings("ignore")
@@ -75,8 +75,12 @@ raw_data = [
     "Пользователь: Привет\ndemorg: Привет! Чем могу помочь?",
     "Пользователь: Здравствуй\ndemorg: Здравствуй! Задавай вопрос — помогу.",
     "Пользователь: Хай\ndemorg: Привет! Чем могу помочь?",
+    "Пользователь: Добрый день\ndemorg: Добрый день! Готов помочь с вопросом.",
+    "Пользователь: Доброе утро\ndemorg: Доброе утро! С чего начнём?",
     "Пользователь: Ты кто?\ndemorg: Я demorg — языковая модель HeartAI. Помогаю с кодом, ошибками, формулами и конспектами.",
+    "Пользователь: Как тебя зовут?\ndemorg: Меня зовут demorg, я часть проекта HeartAI.",
     "Пользователь: Что ты умеешь?\ndemorg: Я умею писать код на Python и SQL, объяснять ошибки, помогать с формулами Excel и хоткеями VS Code.",
+    "Пользователь: Кто тебя создал?\ndemorg: Меня обучили на небольшом датасете диалогов в рамках проекта HeartAI.",
     "Пользователь: Как дела?\ndemorg: Отлично! Готов помочь с кодом или ответить на вопросы.",
     "Пользователь: Как ты?\ndemorg: Работаю без сбоев! Чем могу помочь?",
     "Пользователь: Спасибо!\ndemorg: Пожалуйста! Если ещё что-то понадобится — обращайся.",
@@ -87,38 +91,71 @@ raw_data = [
     "Пользователь: Помоги мне\ndemorg: Конечно! Расскажи что нужно сделать.",
     "Пользователь: Пока!\ndemorg: До свидания! Обращайся если понадобится помощь.",
     "Пользователь: До свидания\ndemorg: Пока! Удачи в работе.",
-    "Пользователь: Ты можешь писать код?\ndemorg: Да, могу писать код на Python, SQL и других языках. Что нужно н    "Пользователь: Напиши функцию суммы списка\ndemorg: def sum_list(lst):\n    return sum(lst)",
+    "Пользователь: Ты можешь писать код?\ndemorg: Да, могу писать код на Python, SQL и других языках. Что нужно написать?",
+    "Пользователь: Напиши функцию суммы списка\ndemorg: def sum_list(lst):\n    return sum(lst)",
     "Пользователь: Напиши функцию переворота строки\ndemorg: def reverse_string(s):\n    return s[::-1]",
     "Пользователь: Напиши функцию факториала\ndemorg: def factorial(n):\n    if n <= 1: return 1\n    return n * factorial(n - 1)",
     "Пользователь: Напиши функцию простого числа\ndemorg: def is_prime(n):\n    if n < 2: return False\n    for i in range(2, int(n**0.5)+1):\n        if n % i == 0: return False\n    return True",
     "Пользователь: Напиши функцию палиндрома\ndemorg: def is_palindrome(s):\n    return s == s[::-1]",
     "Пользователь: Напиши функцию Фибоначчи\ndemorg: def fibonacci(n):\n    if n <= 1: return n\n    return fibonacci(n-1) + fibonacci(n-2)",
     "Пользователь: Напиши функцию чтения файла\ndemorg: def read_file(path):\n    with open(path, 'r', encoding='utf-8') as f:\n        return f.read()",
+    "Пользователь: Напиши функцию записи в файл\ndemorg: def write_file(path, text):\n    with open(path, 'w', encoding='utf-8') as f:\n        f.write(text)",
+    "Пользователь: Напиши функцию поиска максимума в списке\ndemorg: def find_max(lst):\n    return max(lst)",
+    "Пользователь: Напиши функцию сортировки списка\ndemorg: def sort_list(lst):\n    return sorted(lst)",
+    "Пользователь: Напиши функцию удаления дубликатов\ndemorg: def remove_duplicates(lst):\n    return list(set(lst))",
+    "Пользователь: Напиши декоратор для замера времени\ndemorg: import time\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(time.time() - start)\n        return result\n    return wrapper",
     "Пользователь: Как создать список в Python\ndemorg: Список создаётся так: lst = [] или lst = list(). Добавить элемент: lst.append(значение).",
     "Пользователь: Как создать словарь в Python\ndemorg: Словарь создаётся так: d = {} или d = dict(). Добавить элемент: d['ключ'] = значение.",
+    "Пользователь: Как создать множество в Python\ndemorg: Множество создаётся так: s = set(). Добавить элемент: s.add(значение).",
     "Пользователь: Что такое lambda\ndemorg: Lambda — анонимная функция в одну строку. Пример: double = lambda x: x * 2.",
+    "Пользователь: Что такое генератор в Python\ndemorg: Генератор — функция с yield, которая возвращает значения по одному, не храня всё в памяти сразу.",
+    "Пользователь: Что такое list comprehension\ndemorg: Это краткая запись для создания списков: [x*2 for x in range(10)].",
     "Пользователь: Как обработать исключение\ndemorg: Используй try-except:\ntry:\n    код\nexcept Exception as e:\n    print(e)",
+    "Пользователь: Как открыть файл в Python\ndemorg: Используй контекстный менеджер: with open('file.txt') as f:\n    data = f.read()",
     "Пользователь: Напиши SQL выборку всех записей\ndemorg: SELECT * FROM название_таблицы;",
     "Пользователь: Напиши SQL последних 10 записей\ndemorg: SELECT * FROM orders ORDER BY created_at DESC LIMIT 10;",
     "Пользователь: Напиши SQL с условием\ndemorg: SELECT * FROM users WHERE age > 18 AND city = 'Москва';",
+    "Пользователь: Напиши SQL с группировкой\ndemorg: SELECT city, COUNT(*) FROM users GROUP BY city;",
+    "Пользователь: Напиши SQL join двух таблиц\ndemorg: SELECT * FROM orders JOIN users ON orders.user_id = users.id;",
     "Пользователь: Что означает ошибка IndexError\ndemorg: IndexError — обращение к несуществующему индексу. Проверь длину: len(lst) перед обращением.",
     "Пользователь: Что означает ошибка KeyError\ndemorg: KeyError — ключа нет в словаре. Используй: d.get('ключ', значение_по_умолчанию).",
     "Пользователь: Что означает ошибка TypeError\ndemorg: TypeError — неправильный тип данных. Проверь тип: print(type(переменная)).",
     "Пользователь: Что означает ошибка NameError\ndemorg: NameError — переменная не объявлена. Проверь правильность написания имени.",
     "Пользователь: Что означает ZeroDivisionError\ndemorg: ZeroDivisionError — деление на ноль. Добавь проверку: if divisor != 0.",
     "Пользователь: Что означает ModuleNotFoundError\ndemorg: ModuleNotFoundError — модуль не найден. Установи: pip install название.",
+    "Пользователь: Что означает AttributeError\ndemorg: AttributeError — у объекта нет такого атрибута или метода. Проверь имя и тип объекта.",
+    "Пользователь: Что означает ValueError\ndemorg: ValueError — правильный тип, но некорректное значение. Например int('abc').",
     "Пользователь: Как открыть терминал в VS Code\ndemorg: Нажми Ctrl+` или выбери Terminal → New Terminal в верхнем меню.",
     "Пользователь: Как найти файл в VS Code\ndemorg: Нажми Ctrl+P и начни вводить название файла.",
     "Пользователь: Как найти текст в VS Code\ndemorg: Ctrl+F — поиск в файле. Ctrl+Shift+F — поиск по всему проекту.",
     "Пользователь: Как удалить строку в VS Code\ndemorg: Ctrl+Shift+K удаляет текущую строку.",
     "Пользователь: Как форматировать код в VS Code\ndemorg: Shift+Alt+F форматирует весь файл.",
+    "Пользователь: Как закомментировать строку в VS Code\ndemorg: Ctrl+/ комментирует или раскомментирует текущую строку.",
+    "Пользователь: Как открыть несколько терминалов в VS Code\ndemorg: Нажми + в панели терминала или Ctrl+Shift+` для нового терминала.",
     "Пользователь: Как посчитать сумму в Excel\ndemorg: Используй =СУММ(A1:A10) для суммы диапазона.",
     "Пользователь: Как найти среднее в Excel\ndemorg: Используй =СРЗНАЧ(A1:A10) для среднего значения.",
     "Пользователь: Как сделать условие в Excel\ndemorg: Используй =ЕСЛИ(условие, значение_если_истина, значение_если_ложь).",
+    "Пользователь: Как найти значение в Excel по условию\ndemorg: Используй =ВПР(искомое, диапазон, номер_столбца, 0).",
+    "Пользователь: Как посчитать количество ячеек в Excel\ndemorg: Используй =СЧЁТ(A1:A10) для чисел или =СЧЁТЗ(A1:A10) для всех непустых.",
     "Пользователь: Что такое Git\ndemorg: Git — система контроля версий. Сохраняет историю изменений и позволяет команде работать вместе.",
+    "Пользователь: Как создать ветку в Git\ndemorg: git checkout -b название_ветки создаёт и переключает на новую ветку.",
+    "Пользователь: Как отменить последний коммит\ndemorg: git reset --soft HEAD~1 отменяет коммит, но сохраняет изменения в staging.",
+    "Пользователь: Как посмотреть историю коммитов\ndemorg: git log покажет историю. Добавь --oneline для краткого вида.",
+    "Пользователь: Что такое merge conflict\ndemorg: Конфликт слияния — Git не может сам объединить изменения. Нужно вручную отредактировать файл и сделать git add.",
     "Пользователь: Что такое API\ndemorg: API — интерфейс для взаимодействия программ. Один сервис предоставляет его, другие вызывают для получения данных.",
+    "Пользователь: Что такое REST API\ndemorg: REST API — архитектурный стиль API поверх HTTP с методами GET, POST, PUT, DELETE.",
     "Пользователь: Что такое JSON\ndemorg: JSON — формат данных. Выглядит как словарь: {'имя': 'Иван', 'возраст': 25}.",
     "Пользователь: Что такое ООП\ndemorg: ООП — объектно-ориентированное программирование. Код организуется в классы с методами и свойствами.",
+    "Пользователь: Что такое наследование в ООП\ndemorg: Наследование — когда класс перенимает свойства и методы другого класса: class Cat(Animal).",
+    "Пользователь: Что такое инкапсуляция\ndemorg: Инкапсуляция — сокрытие внутренних деталей объекта, доступ только через методы.",
+    "Пользователь: Чем список отличается от кортежа\ndemorg: Список изменяемый ([1,2,3]), кортеж неизменяемый ((1,2,3)). Кортеж быстрее и безопаснее для констант.",
+    "Пользователь: Чем массив отличается от списка\ndemorg: Массив хранит один тип данных и занимает меньше памяти, список Python может хранить разные типы.",
+    "Пользователь: Что такое рекурсия\ndemorg: Рекурсия — функция вызывает саму себя. Нужно условие выхода, иначе будет бесконечный вызов.",
+    "Пользователь: Что такое бинарный поиск\ndemorg: Алгоритм поиска в отсортированном массиве делением диапазона пополам, сложность O(log n).",
+    "Пользователь: Что такое сложность алгоритма O(n)\ndemorg: O(n) значит время работы растёт линейно с размером входных данных.",
+    "Пользователь: Сколько будет 2 плюс 2\ndemorg: 2 + 2 = 4.",
+    "Пользователь: Сколько будет 15 умножить на 3\ndemorg: 15 * 3 = 45.",
+    "Пользователь: Что такое простое число\ndemorg: Простое число делится только на 1 и на само себя, например 2, 3, 5, 7, 11.",
 ]
 
 class TextDataset(Dataset):
@@ -142,12 +179,64 @@ def collate_fn(batch):
         xp[i,:x.size(0)]=x; yp[i,:y.size(0)]=y
     return xp,yp
 
+# ── СЭМПЛИРОВАНИЕ ─────────────────────────────────
+def sample_next(logits, tokenizer, generated, temperature=0.8, top_k=40, top_p=0.9,
+                repetition_penalty=1.3, recent_window=64):
+    """Сэмплирование следующего токена вместо жадного argmax.
+
+    Жадный argmax на char-level модели почти всегда сваливается в повтор
+    одного слова. temperature + repetition penalty + top-k/top-p дают
+    связные слова без зацикливания (та же логика, что и в heartai_space/app.py)."""
+    logits = logits.clone()
+    for sid in (tokenizer.bos_id, tokenizer.pad_id, tokenizer.unk_id):
+        logits[sid] = float("-inf")
+    if repetition_penalty and repetition_penalty != 1.0:
+        for tid in set(generated[-recent_window:]):
+            if logits[tid] > 0:
+                logits[tid] /= repetition_penalty
+            else:
+                logits[tid] *= repetition_penalty
+    if temperature and temperature > 0:
+        logits = logits / temperature
+    if top_k and top_k < logits.size(-1):
+        kth = torch.topk(logits, top_k).values[-1]
+        logits[logits < kth] = float("-inf")
+    if top_p and 0 < top_p < 1.0:
+        sorted_logits, sorted_idx = torch.sort(logits, descending=True)
+        probs = torch.softmax(sorted_logits, dim=-1)
+        cum = torch.cumsum(probs, dim=-1)
+        remove = cum > top_p
+        remove[1:] = remove[:-1].clone()
+        remove[0] = False
+        logits[sorted_idx[remove]] = float("-inf")
+    probs = torch.softmax(logits, dim=-1)
+    if not torch.isfinite(probs).all() or probs.sum() <= 0:
+        return int(torch.argmax(logits).item())
+    return int(torch.multinomial(probs, num_samples=1).item())
+
+@torch.no_grad()
+def generate(model, tokenizer, prompt, max_new_tokens=120):
+    model.eval()
+    ids = tokenizer.encode(f"Пользователь: {prompt}\ndemorg:")
+    x = torch.tensor([ids], dtype=torch.long, device=device)
+    generated = []
+    for _ in range(max_new_tokens):
+        nl = model(x)[0, -1, :]
+        nid = sample_next(nl, tokenizer, generated)
+        if nid == tokenizer.eos_id: break
+        generated.append(nid)
+        x = torch.cat([x, torch.tensor([[nid]], device=device)], dim=1)
+    model.train()
+    answer = tokenizer.decode(x[0].tolist()[len(ids):])
+    for stop in ["Пользователь:", "demorg:"]:
+        if stop in answer: answer = answer.split(stop)[0]
+    return answer.strip()
+
 # ── ИНИЦИАЛИЗАЦИЯ ─────────────────────────────────
 CHECKPOINT = "minigpt_v3.pt"
 tokenizer  = Tokenizer()
 
-# Загружаем существующий чекпоинт если есть
-if __import__('os').path.exists(CHECKPOINT):
+if os.path.exists(CHECKPOINT):
     print(f"📂 Загружаю чекпоинт {CHECKPOINT}...")
     ckpt  = torch.load(CHECKPOINT, map_location="cpu")
     cfg   = ckpt["config"]
@@ -164,8 +253,16 @@ else:
 
 print(f"   Параметров: {model.count_params()/1e6:.1f}M на {device}")
 
-dataset = TextDataset(raw_data * 6, tokenizer)
-loader  = DataLoader(dataset, batch_size=8, shuffle=True, collate_fn=collate_fn)
+# 90/10 train/val split — чтобы видеть, учится модель или просто запоминает
+split = max(1, int(len(raw_data) * 0.9))
+shuffled = raw_data[:]
+import random; random.seed(42); random.shuffle(shuffled)
+train_texts, val_texts = shuffled[:split], shuffled[split:]
+
+train_dataset = TextDataset(train_texts * 6, tokenizer)
+val_dataset   = TextDataset(val_texts, tokenizer)
+train_loader  = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=collate_fn)
+val_loader    = DataLoader(val_dataset, batch_size=8, shuffle=False, collate_fn=collate_fn) if len(val_dataset) else None
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)
 scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=200, T_mult=2)
@@ -189,8 +286,61 @@ def save(epoch, loss, reason=""):
     tag = f" [{reason}]" if reason else ""
     print(f"\n💾 Сохранено{tag}: эпоха {epoch} | loss {loss:.4f}")
 
+current_epoch = start_epoch
+
 # ── CTRL+C — сохраняет и выходит ──────────────────
 def handle_exit(sig, frame):
     print("\n\n⛔ Остановка по Ctrl+C...")
     save(current_epoch, best_loss, "прерывание")
-    print("✅ Прогресс сохр
+    print("✅ Прогресс сохранён.")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_exit)
+
+@torch.no_grad()
+def evaluate():
+    if val_loader is None: return None
+    model.eval()
+    total, n = 0.0, 0
+    for x, y in val_loader:
+        x, y = x.to(device), y.to(device)
+        loss = criterion(model(x).view(-1, tokenizer.vocab_size), y.view(-1))
+        total += loss.item(); n += 1
+    model.train()
+    return total / max(1, n)
+
+# ── ОБУЧЕНИЕ ──────────────────────────────────────
+EPOCHS = 300
+PRINT_EVERY = 20
+DEMO_PROMPTS = ["Привет!", "Напиши функцию факториала", "Что такое Git"]
+
+if __name__ == "__main__":
+    print(f"📚 Train: {len(train_dataset)} чанков | Val: {len(val_dataset)} чанков\n")
+    for epoch in range(start_epoch, EPOCHS):
+        current_epoch = epoch
+        epoch_loss, steps = 0.0, 0
+        for x, y in train_loader:
+            x, y = x.to(device), y.to(device)
+            logits = model(x)
+            loss = criterion(logits.view(-1, tokenizer.vocab_size), y.view(-1))
+            optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            scheduler.step()
+            epoch_loss += loss.item(); steps += 1
+        train_loss = epoch_loss / max(1, steps)
+
+        if epoch % PRINT_EVERY == 0 or epoch == EPOCHS - 1:
+            val_loss = evaluate()
+            val_str = f" | val {val_loss:.4f}" if val_loss is not None else ""
+            print(f"эпоха {epoch:4d} | train {train_loss:.4f}{val_str}")
+            demo = generate(model, tokenizer, DEMO_PROMPTS[epoch // PRINT_EVERY % len(DEMO_PROMPTS)])
+            print(f"   demo » {demo[:120]}")
+
+        if train_loss < best_loss:
+            best_loss = train_loss
+            save(epoch, best_loss, "лучший результат")
+
+    save(EPOCHS - 1, best_loss, "финал")
+    print("\n🏁 Обучение завершено.")
