@@ -265,7 +265,9 @@ train_loader  = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn
 val_loader    = DataLoader(val_dataset, batch_size=8, shuffle=False, collate_fn=collate_fn) if len(val_dataset) else None
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)
-scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=200, T_mult=2)
+# T_0 в шагах ~25 эпох — иначе с 456 чанками/batch=8 (~57 шагов/эпоху) рестарт
+# происходил каждые ~3.5 эпохи и путал сигнал ранней остановки скачками loss
+scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=len(train_loader) * 25, T_mult=2)
 criterion = nn.CrossEntropyLoss(ignore_index=-100)
 
 # ── СОХРАНЕНИЕ ────────────────────────────────────
@@ -312,12 +314,17 @@ def evaluate():
 # ── ОБУЧЕНИЕ ──────────────────────────────────────
 EPOCHS = 300
 PRINT_EVERY = 20
-PATIENCE = 8   # эпох подряд без улучшения val loss — датасет крошечный, легко переобучиться
+MIN_EPOCHS = 15   # не останавливаемся раньше — датасет крошечный, ранние эпохи шумные
+PATIENCE = 15     # эпох подряд без ощутимого улучшения train loss
+MIN_DELTA = 1e-3
 DEMO_PROMPTS = ["Привет!", "Напиши функцию факториала", "Что такое Git"]
 
 if __name__ == "__main__":
     print(f"📚 Train: {len(train_dataset)} чанков | Val: {len(val_dataset)} чанков\n")
-    best_metric = float('inf')  # выбираем чекпоинт по val loss (train loss почти всегда обманчив)
+    # Выбираем чекпоинт по train loss: он считается на 456 чанках и стабилен,
+    # в отличие от val loss на 9 чанках — там шум легко маскируется под
+    # "переобучение" и гасит модель на середине обучения.
+    best_metric = float('inf')
     bad_evals = 0
     last_epoch = start_epoch
     for epoch in range(start_epoch, EPOCHS):
@@ -336,23 +343,21 @@ if __name__ == "__main__":
         train_loss = epoch_loss / max(1, steps)
         best_loss = min(best_loss, train_loss)
 
-        val_loss = evaluate()
-        metric = val_loss if val_loss is not None else train_loss
-
         if epoch % PRINT_EVERY == 0 or epoch == EPOCHS - 1:
+            val_loss = evaluate()
             val_str = f" | val {val_loss:.4f}" if val_loss is not None else ""
             print(f"эпоха {epoch:4d} | train {train_loss:.4f}{val_str}")
             demo = generate(model, tokenizer, DEMO_PROMPTS[epoch // PRINT_EVERY % len(DEMO_PROMPTS)])
             print(f"   demo » {demo[:120]}")
 
-        if metric < best_metric:
-            best_metric, bad_evals = metric, 0
+        if train_loss < best_metric - MIN_DELTA:
+            best_metric, bad_evals = train_loss, 0
             save(epoch, train_loss, "лучший результат")
         else:
             bad_evals += 1
-            if bad_evals >= PATIENCE:
+            if epoch >= MIN_EPOCHS and bad_evals >= PATIENCE:
                 print(f"\n⏹️  Early stopping на эпохе {epoch}: "
-                      f"val loss не улучшается {PATIENCE} эпох подряд.")
+                      f"train loss не улучшается {PATIENCE} эпох подряд.")
                 break
 
     save(last_epoch, best_loss, "финал")
