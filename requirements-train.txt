@@ -1,0 +1,2 @@
+torch
+huggingface_hub

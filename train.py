@@ -343,4 +343,23 @@ if __name__ == "__main__":
             save(epoch, best_loss, "лучший результат")
 
     save(EPOCHS - 1, best_loss, "финал")
-    print("\n🏁 Обучение завершено.")
+    print(f"\n🏁 Обучение завершено. Чекпоинт: {os.path.abspath(CHECKPOINT)}")
+
+    # Опционально — залить чекпоинт на Hugging Face Hub, чтобы его подхватил
+    # heartai_space/app.py (см. HF_HUB_UPLOAD.md). Ничего не делает, если
+    # переменная окружения HF_TOKEN не задана.
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        hf_repo_id = os.environ.get("HF_REPO_ID", "jfenviejijeijef/heartai-demorg")
+        from huggingface_hub import HfApi
+        print(f"\n☁️  Заливаю {CHECKPOINT} в {hf_repo_id}...")
+        HfApi(token=hf_token).upload_file(
+            path_or_fileobj=CHECKPOINT,
+            path_in_repo=CHECKPOINT,
+            repo_id=hf_repo_id,
+        )
+        print("✅ Готово — Space подхватит новый чекпоинт при следующем запуске.")
+    else:
+        print("\nℹ️  Чтобы залить чекпоинт на Hugging Face Hub автоматически, "
+              "задай переменную окружения HF_TOKEN и перезапусти скрипт "
+              "(или загрузи файл вручную — см. README).")
