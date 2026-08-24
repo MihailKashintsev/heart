@@ -312,12 +312,16 @@ def evaluate():
 # ── ОБУЧЕНИЕ ──────────────────────────────────────
 EPOCHS = 300
 PRINT_EVERY = 20
+PATIENCE = 8   # эпох подряд без улучшения val loss — датасет крошечный, легко переобучиться
 DEMO_PROMPTS = ["Привет!", "Напиши функцию факториала", "Что такое Git"]
 
 if __name__ == "__main__":
     print(f"📚 Train: {len(train_dataset)} чанков | Val: {len(val_dataset)} чанков\n")
+    best_metric = float('inf')  # выбираем чекпоинт по val loss (train loss почти всегда обманчив)
+    bad_evals = 0
+    last_epoch = start_epoch
     for epoch in range(start_epoch, EPOCHS):
-        current_epoch = epoch
+        current_epoch = last_epoch = epoch
         epoch_loss, steps = 0.0, 0
         for x, y in train_loader:
             x, y = x.to(device), y.to(device)
@@ -330,19 +334,28 @@ if __name__ == "__main__":
             scheduler.step()
             epoch_loss += loss.item(); steps += 1
         train_loss = epoch_loss / max(1, steps)
+        best_loss = min(best_loss, train_loss)
+
+        val_loss = evaluate()
+        metric = val_loss if val_loss is not None else train_loss
 
         if epoch % PRINT_EVERY == 0 or epoch == EPOCHS - 1:
-            val_loss = evaluate()
             val_str = f" | val {val_loss:.4f}" if val_loss is not None else ""
             print(f"эпоха {epoch:4d} | train {train_loss:.4f}{val_str}")
             demo = generate(model, tokenizer, DEMO_PROMPTS[epoch // PRINT_EVERY % len(DEMO_PROMPTS)])
             print(f"   demo » {demo[:120]}")
 
-        if train_loss < best_loss:
-            best_loss = train_loss
-            save(epoch, best_loss, "лучший результат")
+        if metric < best_metric:
+            best_metric, bad_evals = metric, 0
+            save(epoch, train_loss, "лучший результат")
+        else:
+            bad_evals += 1
+            if bad_evals >= PATIENCE:
+                print(f"\n⏹️  Early stopping на эпохе {epoch}: "
+                      f"val loss не улучшается {PATIENCE} эпох подряд.")
+                break
 
-    save(EPOCHS - 1, best_loss, "финал")
+    save(last_epoch, best_loss, "финал")
     print(f"\n🏁 Обучение завершено. Чекпоинт: {os.path.abspath(CHECKPOINT)}")
 
     # Опционально — залить чекпоинт на Hugging Face Hub, чтобы его подхватил
