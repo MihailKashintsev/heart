@@ -582,11 +582,18 @@ animate();
 // ════════════════════════════════
 const BUILT_IN = {
   url: 'https://heartai-space.onrender.com',
-  key: 'sk-my-main-key-001'
+  key: 'sk-my-main-key-001',
+  version: 2 // увеличивать при каждой смене BUILT_IN.url на деплое — иначе
+             // старый URL, сохранённый в localStorage с прошлого визита,
+             // молча перебивает новый дефолт
 };
 // Ключ больше не редактируется из UI (см. настройки) — всегда вшитый.
-// URL можно переопределить и он переживает перезагрузку страницы.
-let cfg = { ...BUILT_IN, ...(JSON.parse(localStorage.getItem('heartai_cfg') || 'null') || {}), key: BUILT_IN.key };
+// URL можно переопределить вручную и он переживает перезагрузку страницы,
+// но только пока version совпадает — иначе побеждает новый вшитый адрес.
+const savedCfg = JSON.parse(localStorage.getItem('heartai_cfg') || 'null');
+let cfg = (savedCfg && savedCfg.version === BUILT_IN.version)
+  ? { ...BUILT_IN, ...savedCfg, key: BUILT_IN.key }
+  : { ...BUILT_IN };
 let useSearch   = false;
 let connected   = false;
 let sidebarOpen = true;
@@ -674,7 +681,7 @@ function setStatus(t, on) {
 function saveDefault() {
   const url = document.getElementById('sUrl').value.trim().replace(/\/$/,'');
   if (!url) { toast('Заполни URL'); return; }
-  cfg = { ...cfg, url };
+  cfg = { ...cfg, url, version: BUILT_IN.version };
   localStorage.setItem('heartai_cfg', JSON.stringify(cfg));
   toast('Сохранено — переподключаюсь...');
   connected = false;
