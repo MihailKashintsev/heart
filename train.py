@@ -368,7 +368,7 @@ if __name__ == "__main__":
     # переменная окружения HF_TOKEN не задана.
     hf_token = os.environ.get("HF_TOKEN")
     if hf_token:
-        hf_repo_id = os.environ.get("HF_REPO_ID", "jfenviejijeijef/heartai-demorg")
+        hf_repo_id = os.environ.get("HF_REPO_ID", "renderru/heartai-demorg")
         from huggingface_hub import HfApi
         print(f"\n☁️  Заливаю {CHECKPOINT} в {hf_repo_id}...")
         HfApi(token=hf_token).upload_file(

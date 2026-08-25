@@ -16,7 +16,7 @@ try:
     from transformers import AutoTokenizer, AutoModelForCausalLM
     print("Пробую загрузить ruGPT-3...")
     rugpt_path = snapshot_download(
-        repo_id="jfenviejijeijef/heartai-demorg",
+        repo_id="renderru/heartai-demorg",
         allow_patterns=["rugpt3/*"],
     )
     rugpt_dir = os.path.join(rugpt_path, "rugpt3")
@@ -98,7 +98,7 @@ if not USE_RUGPT:
     char_tok = CharTokenizer()
     try:
         path = hf_hub_download(
-            repo_id="jfenviejijeijef/heartai-demorg",
+            repo_id="renderru/heartai-demorg",
             filename="minigpt_v3.pt", force_download=True)
         ckpt = torch.load(path, map_location="cpu")
         sd   = ckpt["model_state"]
