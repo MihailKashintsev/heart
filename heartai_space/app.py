@@ -1,38 +1,12 @@
 
-import torch, torch.nn as nn, math, secrets, os, warnings, re
+import torch, torch.nn as nn, math, secrets, os, warnings, re, gc
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub import hf_hub_download
 
 warnings.filterwarnings("ignore")
 
-# ── Пробуем загрузить ruGPT-3 ─────────────────────
-USE_RUGPT = False
-model     = None
-tokenizer = None
-
-try:
-    from transformers import AutoTokenizer, AutoModelForCausalLM
-    print("Пробую загрузить ruGPT-3...")
-    rugpt_path = snapshot_download(
-        repo_id="renderru/heartai-demorg",
-        allow_patterns=["rugpt3/*"],
-    )
-    rugpt_dir = os.path.join(rugpt_path, "rugpt3")
-    if os.path.exists(os.path.join(rugpt_dir, "config.json")):
-        tokenizer = AutoTokenizer.from_pretrained(rugpt_dir)
-        tokenizer.pad_token = tokenizer.eos_token
-        model = AutoModelForCausalLM.from_pretrained(rugpt_dir)
-        model.eval()
-        USE_RUGPT = True
-        print(f"✅ ruGPT-3 загружена! Параметров: {sum(p.numel() for p in model.parameters())/1e6:.1f}M")
-    else:
-        print("ruGPT-3 ещё не готова — использую базовую модель")
-except Exception as e:
-    print(f"ruGPT-3 недоступна ({e}) — использую базовую модель")
-
-# ── Базовая модель (fallback) ──────────────────────
 class CharTokenizer:
     def __init__(self):
         chars = ("абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
@@ -92,55 +66,31 @@ class MiniGPT(nn.Module):
     def count_params(self): return sum(p.numel() for p in self.parameters())
 
 device = torch.device("cpu")
+torch.set_num_threads(1)  # мало смысла в пуле потоков на CPU-инстансе с долей ядра — экономим память
 
-if not USE_RUGPT:
-    print("Загружаю базовую модель...")
-    char_tok = CharTokenizer()
-    try:
-        path = hf_hub_download(
-            repo_id="renderru/heartai-demorg",
-            filename="minigpt_v3.pt", force_download=True)
-        ckpt = torch.load(path, map_location="cpu")
-        sd   = ckpt["model_state"]
-        embed_dim  = sd["te.weight"].shape[1]
-        num_layers = max(int(k.split(".")[1]) for k in sd if k.startswith("blocks."))+1
-        base_model = MiniGPT(char_tok.vocab_size,embed_dim,8,num_layers,512).to(device)
-        base_model.load_state_dict(sd)
-        base_model.eval()
-        print(f"✅ Базовая модель: {base_model.count_params():,} параметров")
-    except Exception as e:
-        print(f"❌ Ошибка загрузки: {e}")
-        base_model = None
+print("Загружаю модель...")
+char_tok = CharTokenizer()
+try:
+    path = hf_hub_download(
+        repo_id="renderru/heartai-demorg",
+        filename="minigpt_v3.pt")
+    ckpt = torch.load(path, map_location="cpu")
+    sd   = ckpt["model_state"]
+    embed_dim  = sd["te.weight"].shape[1]
+    num_layers = max(int(k.split(".")[1]) for k in sd if k.startswith("blocks."))+1
+    base_model = MiniGPT(char_tok.vocab_size,embed_dim,8,num_layers,512).to(device)
+    base_model.load_state_dict(sd)
+    base_model.eval()
+    print(f"✅ Модель загружена: {base_model.count_params():,} параметров")
+    del ckpt, sd  # веса уже скопированы в base_model — раздельная копия больше не нужна
+    gc.collect()
+except Exception as e:
+    print(f"❌ Ошибка загрузки: {e}")
+    base_model = None
 
 # ── ГЕНЕРАЦИЯ ─────────────────────────────────────
 def chat(text):
-    if USE_RUGPT:
-        return chat_rugpt(text)
-    else:
-        return chat_base(text)
-
-def chat_rugpt(text):
-    prompt = f"Пользователь: {text}\ndemorg:"
-    inputs = tokenizer(prompt, return_tensors="pt")
-    with torch.no_grad():
-        out = model.generate(
-            **inputs,
-            max_new_tokens     = 100,
-            do_sample          = True,
-            temperature        = 0.7,
-            top_p              = 0.9,
-            repetition_penalty = 1.3,
-            pad_token_id       = tokenizer.eos_token_id,
-            eos_token_id       = tokenizer.eos_token_id,
-        )
-    full = tokenizer.decode(out[0], skip_special_tokens=True)
-    if "demorg:" in full:
-        answer = full.split("demorg:")[-1].strip()
-        if "Пользователь:" in answer:
-            answer = answer.split("Пользователь:")[0].strip()
-    else:
-        answer = full[len(prompt):].strip()
-    return answer[:300]
+    return chat_base(text)
 
 def sample_next(logits, generated, temperature=0.8, top_k=40, top_p=0.9,
                 repetition_penalty=1.3, recent_window=64):
@@ -231,18 +181,15 @@ class KeyRequest(BaseModel):
     name: str
 
 def total_params():
-    if USE_RUGPT: return sum(p.numel() for p in model.parameters())
-    if base_model: return base_model.count_params()
-    return 0
+    return base_model.count_params() if base_model else 0
 
 @app.get("/")
 def root():
-    return {"status":"ok","model":"ruGPT-3" if USE_RUGPT else "demorg-base","params":total_params()}
+    return {"status":"ok","model":"demorg-base","params":total_params()}
 
 @app.get("/v1/health")
 def health():
-    m = "ruGPT-3 fine-tuned" if USE_RUGPT else "demorg base"
-    return {"status":"online","parameters":f"{total_params():,}","model":m,"device":str(device)}
+    return {"status":"online","parameters":f"{total_params():,}","model":"demorg base","device":str(device)}
 
 @app.post("/v1/ask")
 def ask(req: AskRequest, authorization: str = Header(...)):
