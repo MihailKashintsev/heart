@@ -140,7 +140,10 @@ def chat_base(text):
     x = torch.tensor([ids], dtype=torch.long)
     generated = []
     with torch.no_grad():
-        for _ in range(150):
+        # Модель редко сама останавливается по EOS, так что почти всегда
+        # доходим до лимита — на free-CPU Render каждый лишний шаг ощутим,
+        # а ответ всё равно обрезается до 1-2 предложений ниже.
+        for _ in range(60):
             nl = base_model(x)[0,-1,:]
             nid = sample_next(nl, generated)
             if nid == char_tok.eos_id: break
